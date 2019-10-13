@@ -2696,6 +2696,41 @@ HTML5 中，history 新增了两个操作 history 栈中内容的方法，但这
   -  JS 中调用 history.back()、history.forward()、history.go() 方法
   - history.pushState() 和 history.replaceState() 不会触发该事件，因为它们只修改记录，不导致页面加载
 
+需要注意的是：
+
+* 与 Safari、Firefox 浏览器测试结果不同的是，在 Chrome 中，直接通过 pushState 方法自动添加的历史记录并不会在浏览器“前进”和“后退”操作中起作用；只有在点击事件中，通过 pushState 方法添加的历史记录才起作用。例如：
+
+  ```
+  history.pushState('', 'title 1', "?page=1");
+  history.pushState('', 'title 2', "?page=2");
+  history.pushState('', 'title 3', "?page=3");
+  
+  window.addEventListener("popstate", function (e) {
+  		console.log(location.href)
+  });
+  ```
+
+  点击 Chrome 后退按钮，会直接退出当前页面，popstate 事件也不会被触发。
+
+  ```
+  // HTML
+  <a id="btn" href="javascript:;">手动点击</a>
+  
+  // JS
+  let num = 1;
+  
+  document.getElementById('btn').addEventListener('click', () => {
+      history.pushState(``, `title${num}`, `?page=${num}`)
+      num++;
+  })
+  
+  window.addEventListener("popstate", function (e) {
+  		console.log(location.href)
+  });
+  ```
+
+  而在 click 事件中手动添加的历史记录是起作用的，每点击一次 a 标签，就会增加一条历史记录，在点击后退按钮时，会触发 popstate 事件。
+
 #### 全屏 API
 
 全屏 API 使一个元素与其子元素占据整个屏幕，同时，隐藏所有的浏览器用户界面及其他应用。
