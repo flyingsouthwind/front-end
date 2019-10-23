@@ -2939,6 +2939,39 @@ border-image-repeat: [ stretch | repeat | round | space ]{1,2}
 ### P
 
 #### pointer-events
+pointer-events 属性用于控制 HTML 元素的指针事件。支持的属性值：
+
+* auto：启用指针事件
+
+* none：禁用指针事件
+
+  注意事项：
+
+  * 当禁用指针的的元素有子/父元素时，在时间冒泡/捕获阶段，事件将依然会在其子/父元素触发
+  * 当禁用指针的的元素的下方有元素时，鼠标事件会“穿透”该元素而触发其下面元素的事件
+  * 禁用指针事件可以提高元素的滚动性能，因为不禁用时引擎会检查元素事件是否应该被执行
+
+  应用场景：
+
+  * 在一些特殊时刻，比如 tab 标签已经选中，或者点击会触发 ajax 请求，但上一次触发的请求还未完成时
+  * 通过遮罩元素实现特殊效果，但又不想影响被遮罩元素的事件
+
+还有专用于 \<svg> 元素的事件：
+
+* visiblepainted
+* visiblefill
+* visiblestroke
+* visible
+* painted
+* fill
+* stroke
+* all
+
+##### 参考
+
+* https://developer.mozilla.org/zh-CN/docs/Web/CSS/pointer-events
+* https://juejin.im/post/59bb2ec16fb9a00a5a31deab
+
 
 
 
