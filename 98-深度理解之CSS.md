@@ -2821,6 +2821,41 @@ background-clip 属性规定背景的绘制区域。支持属性值：
    }
    ```
 
+#### background-image
+
+
+
+##### 对比 \<img>
+
+两者的区别：
+
+* 语义化
+
+  \<img> 是 HTML 标签，语义明确；background-image 是语义无关的。
+
+* 是否占位
+
+  \<img> 是内容块级元素（HTML 中占位）；background-image 是装饰性元素（HTML 中不占位）
+
+* 加载顺序
+
+  **\<img> 作为 DOM 结构的一部分，会优先解析并加载；尽管 CSS 文件通常会被放在 \<head> 标签中优先加载，但 HTML 中元素的 background-image 属性依然会在 DOM 元素都解析加载完成后才会加载，所以首屏图片采用 \<img> 标签会有更好的性能。**
+
+* 加载性能
+
+  参考文章 2 中比对了使用 \<img> 标签和 background-image 加载图片的速度和动画性能， \<img> 标签要优于   background-image，尤其是动画性能方面，有时更加明显。**所以，主要图片和动画图片应优先选用  \<img> 标签。 **
+
+* SEO 优化
+
+  带有 alt 属性的 \<img> 标签，更有利于辅助阅读和 SEO。
+
+###### 参考
+
+* https://www.cnblogs.com/ivy-xu/p/6638459.html
+* https://www.yudouyudou.com/jiaochengheji/Html_css/531.html
+* https://juejin.im/post/5ade866051882567370604a2
+
+
 
 
 
