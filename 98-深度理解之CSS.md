@@ -2935,6 +2935,160 @@ border-image-repeat: [ stretch | repeat | round | space ]{1,2}
 * space，平铺图像 ，当不能整数次平铺时，会用空白间隙填充在图像周围，不会放大或缩小图像
 
 
+### M
+
+
+
+#### mask
+
+mask 属性用于设置一张半透明的遮罩图片，以部分显示下方被遮罩的内容。
+
+其语法与 background 是相仿的，与 background 对应的 6 个属性在 webkit/blink 内核都能完全支持，且语法与 background 相通：
+
+| mask            | background            |
+| :-------------- | :-------------------- |
+| mask-clip       | background-clip       |
+| *mask-composite | -                     |
+| mask-image      | background-image      |
+| *mask-mode      | -                     |
+| mask-origin     | background-origin     |
+| mask-position   | background-position   |
+| mask-repeat     | background-repeat     |
+| mask-size       | background-size       |
+| -               | background-attachment |
+| -               | background-color      |
+
+mask 属性的常用简化写法：
+
+```
+mask: [mask-image] [mask-repeat] [mask-position] / [ mask-size];
+
+// 部分安卓机 background 简写不支持 background-size，需单独写 background-size
+// 同理，这部分安卓机也需要单独写 mask-size，所以 mask 的简写应该是：
+mask: [mask-image] [mask-repeat] [mask-position];
+mask-size: [mask-size];
+```
+
+
+
+##### 参考
+
+* https://aotu.io/notes/2016/10/19/css3-mask/index.html
+
+
+
+#### mask-clip
+
+mask-clip 确定受遮罩影响的区域。支持的属性值：
+
+* content-box：绘制边界为 content-box
+* padding-box：绘制边界为 padding-box
+* border-box：绘制边界为 border-box
+* margin-box：绘制边界为 margin-box
+
+用于 svg 的属性值：
+
+* fill-box：绘制边界为 object 边界框
+* stroke-box：绘制边界为 stroke 边界框
+* view-box：绘制边界为 view 边界框
+
+
+
+#### mask-image
+
+mask-image 用于设置 mask 遮罩层的图片。支持的属性值类似于 background-image：
+
+* none：此关键字被解释为透明的黑色图像层
+* \<mask-source>：对 \<mask> 或 CSS 图像的 \<url> 引用
+* \<image>：用作遮罩图像层的图像值
+
+```
+/* Keyword value */
+mask-image: none;
+
+/* <mask-source> value */
+mask-image: url(masks.svg#mask1);
+
+/* <image> values */
+mask-image: linear-gradient(rgba(0, 0, 0, 1.0), transparent);
+mask-image: image(url(mask.png), skyblue);
+
+/* Multiple values */
+mask-image: image(url(mask.png), skyblue), linear-gradient(rgba(0, 0, 0, 1.0), transparent);
+
+/* Global values */
+mask-image: inherit;
+mask-image: initial;
+mask-image: unset;
+```
+
+
+
+#### mask-position
+
+mask-position 为 mask 图像设置相对于 mask-origin 的初始位置。支持的属性值类似于 background-position：
+
+* \<position>：1-4 个代表有关元素框边缘的 2D 位置值。
+
+```
+/* Keyword values */
+mask-position: top;
+mask-position: bottom;
+mask-position: left;
+mask-position: right;
+mask-position: center;
+
+/* <position> values */
+mask-position: 25% 75%;
+mask-position: 0px 0px;
+mask-position: 10% 8em;
+
+/* Multiple values */
+mask-position: top right;
+mask-position: 1rem 1rem, center;
+
+/* Global values */
+mask-position: inherit;
+mask-position: initial;
+mask-position: unset;
+```
+
+
+
+#### mask-repeat
+
+mask-repeat  设置蒙版图片的重复方式。遮罩图片可以沿水平和垂直两个轴重复，也可以完全不重复。支持的属性值类似于 background-repeat：
+
+* \<repeat-style>
+  * repeat：图片无间距重复以覆盖整个蒙版绘画区域，边缘重复图片可能会被剪裁
+  * space：图片尽可能多地重复以覆盖整个蒙版绘画区域，图片可能有间距但边缘重复图片不会被剪裁
+  * round：图片无间距重复以覆盖整个蒙版绘画区域，图片不会被剪裁但会被缩放
+  * no-repeat：图片不重复
+
+单值设置与完整双值的对应关系：
+
+| 单值      | 双值                |
+| --------- | ------------------- |
+| repeat-x  | repeat no-repeat    |
+| repeat-y  | no-repeat repeat    |
+| repeat    | repeat repeat       |
+| spac      | space space         |
+| round     | round roun          |
+| no-repeat | no-repeat no-repeat |
+
+
+
+#### mask-size
+
+mask-size 指定蒙版图片的大小。支持的属性值类似于 background-size：
+
+* \<length>：将图片按比例缩放到指定长度。
+* \<percentage>：将蒙版图片缩放到蒙版定位区域的指定百分比，该百分比由 mask-origin 的值确定
+* auto：在相应方向上缩放蒙版图片以保持其固有比例
+* contain：尽可能缩放图片并保持图片宽高比，图片不被裁剪
+* cover：尽可能缩放图片并保持图片长宽比，图片有可能被裁剪
+
+
 
 ### P
 
